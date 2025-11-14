@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Kaos Shortsleeve Black",
+    "category": "Shortsleeve Black",
+    "price": "50000",
+    "stock": 10,
+    "stokMinimum": 5,
+    "imagePath": "assets/placeholder.png",
+    "timestamp": 1700000000
+  },
+  {
+    "name": "Kaos Shortsleeve Faded",
+    "category": "Shortsleeve Faded",
+    "price": "55000",
+    "stock": 15,
+    "stokMinimum": 5,
+    "imagePath": "assets/placeholder.png",
+    "timestamp": 1700000100
+  },
+  {
+    "name": "Kaos Longsleeve Black",
+    "category": "Longsleeve Black",
+    "price": "65000",
+    "stock": 8,
+    "stokMinimum": 3,
+    "imagePath": "assets/placeholder.png",
+    "timestamp": 1700000200
+  },
+  {
+    "name": "Kaos Longsleeve Faded",
+    "category": "Longsleeve Faded",
+    "price": "70000",
+    "stock": 12,
+    "stokMinimum": 4,
+    "imagePath": "assets/placeholder.png",
+    "timestamp": 1700000300
+  }
+]

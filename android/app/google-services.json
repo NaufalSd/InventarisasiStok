@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "774094771001",
+    "project_id": "inventaris-stock-baju",
+    "storage_bucket": "inventaris-stock-baju.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774094771001:android:608d90182c8646a4cbcee8",
+        "android_client_info": {
+          "package_name": "com.example.inventaris_stock_baju"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeK7BLr9FEAmYti6Z80rnhqVvyOPUC34M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
