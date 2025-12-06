@@ -21,6 +21,7 @@ class _TambahPageState extends State<TambahPage>
   final TextEditingController _editStockController = TextEditingController();
 
   String? _selectedCategory;
+  String? _selectedSize; // 👈 DITAMBAHKAN
   List<Map<String, dynamic>> _products = [];
   String? _selectedProductTambah;
   String? _selectedProductEdit;
@@ -31,6 +32,8 @@ class _TambahPageState extends State<TambahPage>
     'Longsleeve Black',
     'Longsleeve Faded',
   ];
+
+  final List<String> _sizeList = ['S', 'M', 'L', 'XL', 'XXL']; // 👈 DITAMBAHKAN
 
   final CollectionReference _produkCollection = FirebaseFirestore.instance
       .collection('produk');
@@ -75,10 +78,12 @@ class _TambahPageState extends State<TambahPage>
     final stokAwal = _stokAwalController.text.trim();
     final stokMinimum = _stokMinimumController.text.trim();
     final category = _selectedCategory ?? '';
+    final size = _selectedSize ?? ''; // 👈 DITAMBAHKAN
 
     if (name.isEmpty ||
         price.isEmpty ||
         category.isEmpty ||
+        size.isEmpty || // 👈 WAJIB ISI SIZE
         stokAwal.isEmpty ||
         stokMinimum.isEmpty) {
       ScaffoldMessenger.of(
@@ -103,6 +108,7 @@ class _TambahPageState extends State<TambahPage>
       await _produkCollection.add({
         'name': name,
         'category': category,
+        'size': size, // 👈 DISIMPAN KE FIREBASE
         'price': price,
         'stock': int.tryParse(stokAwal) ?? 0,
         'stockMinimum': int.tryParse(stokMinimum) ?? 0,
@@ -117,8 +123,10 @@ class _TambahPageState extends State<TambahPage>
       _priceController.clear();
       _stokAwalController.clear();
       _stokMinimumController.clear();
+
       setState(() {
         _selectedCategory = null;
+        _selectedSize = null; // 👈 RESET SIZE
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,7 +175,7 @@ class _TambahPageState extends State<TambahPage>
     }
   }
 
-  // ===== Edit Stok (Barang Keluar) =====
+  // ===== Edit Stok =====
   Future<void> _editStock() async {
     if (_selectedProductEdit == null || _editStockController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -212,6 +220,54 @@ class _TambahPageState extends State<TambahPage>
     }
   }
 
+  // ===== Hapus Produk =====
+  Future<void> _deleteProduct() async {
+    if (_selectedProductEdit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih produk yang ingin dihapus!')),
+      );
+      return;
+    }
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Hapus Produk"),
+          content: const Text("Apakah Anda yakin ingin menghapus produk ini?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Hapus"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _produkCollection.doc(_selectedProductEdit).delete();
+      await _loadProducts();
+      widget.onProductAdded();
+
+      setState(() => _selectedProductEdit = null);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Produk berhasil dihapus!")));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal menghapus produk: $e")));
+    }
+  }
+
   // ================== UI ==================
   @override
   Widget build(BuildContext context) {
@@ -238,7 +294,7 @@ class _TambahPageState extends State<TambahPage>
     );
   }
 
-  // ====== UI untuk tiap tab ======
+  // ====== UI Produk Baru ======
   Widget _buildTambahProduk() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -252,6 +308,8 @@ class _TambahPageState extends State<TambahPage>
             ),
           ),
           const SizedBox(height: 16),
+
+          // ===== Dropdown kategori =====
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(
               labelText: 'Kategori',
@@ -266,7 +324,24 @@ class _TambahPageState extends State<TambahPage>
                 .toList(),
             onChanged: (value) => setState(() => _selectedCategory = value),
           ),
+
           const SizedBox(height: 16),
+
+          // ===== Dropdown Size =====
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Size',
+              border: OutlineInputBorder(),
+            ),
+            value: _selectedSize,
+            items: _sizeList
+                .map((size) => DropdownMenuItem(value: size, child: Text(size)))
+                .toList(),
+            onChanged: (value) => setState(() => _selectedSize = value),
+          ),
+
+          const SizedBox(height: 16),
+
           TextField(
             controller: _priceController,
             keyboardType: TextInputType.number,
@@ -307,6 +382,7 @@ class _TambahPageState extends State<TambahPage>
     );
   }
 
+  // ===== Tambah stok =====
   Widget _buildTambahStok() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -359,6 +435,7 @@ class _TambahPageState extends State<TambahPage>
     );
   }
 
+  // ===== Edit stok =====
   Widget _buildEditStok() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -403,6 +480,16 @@ class _TambahPageState extends State<TambahPage>
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
               backgroundColor: Colors.blue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _deleteProduct,
+            icon: const Icon(Icons.delete),
+            label: const Text('Hapus Produk'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              backgroundColor: Colors.red,
             ),
           ),
         ],

@@ -24,6 +24,7 @@ class _LaporanPageState extends State<LaporanPage> {
       final snapshot = await FirebaseFirestore.instance
           .collection('produk')
           .get();
+
       final List<Map<String, dynamic>> loaded = snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -43,35 +44,30 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
-  // === Grafik stok per produk ===
-  List<LineChartBarData> _generateStockChart() {
-    List<FlSpot> spots = [];
-    for (int i = 0; i < _products.length; i++) {
-      final stock = ((_products[i]['stock'] ?? 0) as num).toDouble();
-      spots.add(FlSpot(i.toDouble(), stock));
-    }
+  // === DIAGRAM BATANG PERGERAKAN STOK ===
+  List<BarChartGroupData> _generateBarChart() {
+    return List.generate(_products.length, (index) {
+      final double stock = ((_products[index]['stock'] ?? 0) as num).toDouble();
+      final double minStock = ((_products[index]['stokMinimum'] ?? 0) as num)
+          .toDouble();
 
-    Color lineColor = Colors.blue;
-    if (_products.any((p) => (p['stock'] ?? 0) < (p['stokMinimum'] ?? 0))) {
-      lineColor = Colors.red;
-    }
+      final barColor = stock < minStock ? Colors.red : Colors.blue;
 
-    return [
-      LineChartBarData(
-        spots: spots,
-        isCurved: true,
-        barWidth: 3,
-        dotData: FlDotData(show: true),
-        color: lineColor,
-        belowBarData: BarAreaData(
-          show: true,
-          color: lineColor.withOpacity(0.2),
-        ),
-      ),
-    ];
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: stock,
+            width: 16,
+            color: barColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ],
+      );
+    });
   }
 
-  // === Kartu ringkasan stok ===
+  // === CARD RINGKASAN ===
   Widget _buildStockSummaryCard({
     required IconData icon,
     required Color iconColor,
@@ -127,7 +123,7 @@ class _LaporanPageState extends State<LaporanPage> {
     );
   }
 
-  // === Distribusi kategori ===
+  // === DISTRIBUSI KATEGORI ===
   Widget _buildCategoryDistributionItem(
     String name,
     int count,
@@ -141,7 +137,7 @@ class _LaporanPageState extends State<LaporanPage> {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -155,7 +151,7 @@ class _LaporanPageState extends State<LaporanPage> {
               child: LinearProgressIndicator(
                 value: percentage,
                 backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+                valueColor: AlwaysStoppedAnimation(color),
                 minHeight: 8,
               ),
             ),
@@ -170,22 +166,20 @@ class _LaporanPageState extends State<LaporanPage> {
     );
   }
 
-  // === Item riwayat produk ===
+  // === ITEM RIWAYAT ===
   Widget _buildProductAdditionItem(Map<String, dynamic> data) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: data['color'] as Color,
-              ),
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: data['color'],
             ),
           ),
           const SizedBox(width: 10),
@@ -194,7 +188,7 @@ class _LaporanPageState extends State<LaporanPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data['name'] as String,
+                  data['name'],
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -204,28 +198,28 @@ class _LaporanPageState extends State<LaporanPage> {
                 Row(
                   children: [
                     Text(
-                      (data['date'] as String).split(' ').first,
+                      data['date'].split(" ").first,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(width: 8),
                     const Icon(Icons.circle, size: 4, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
-                      data['details'] as String,
+                      data['details'],
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(width: 8),
                     const Icon(Icons.circle, size: 4, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
-                      data['type'] as String,
+                      data['type'],
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data['source'] as String,
+                  data['source'],
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
@@ -235,16 +229,16 @@ class _LaporanPageState extends State<LaporanPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                data['qty'] as String,
+                data['qty'],
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: data['color'] as Color,
+                  color: data['color'],
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                data['price'] as String,
+                data['price'],
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
@@ -259,6 +253,7 @@ class _LaporanPageState extends State<LaporanPage> {
     int totalStock = _products
         .fold<num>(0, (sum, p) => sum + (p['stock'] ?? 0))
         .toInt();
+
     int lowStock = _products
         .where(
           (p) =>
@@ -266,39 +261,40 @@ class _LaporanPageState extends State<LaporanPage> {
               ((p['stokMinimum'] ?? 0) as num).toInt(),
         )
         .length;
+
     int outOfStock = _products
         .where((p) => ((p['stock'] ?? 0) as num).toInt() == 0)
         .length;
+
     int categoryCount = _products.map((p) => p['category']).toSet().length;
 
-    // === Distribusi kategori ===
+    // Distribusi kategori
     final categories = _products.map((p) => p['category']).toSet();
     List<Map<String, dynamic>> categoryDistribution = [];
     int colorIndex = 0;
+
     for (var cat in categories) {
-      final catProducts = _products.where((p) => p['category'] == cat).toList();
+      final items = _products.where((p) => p['category'] == cat).toList();
       categoryDistribution.add({
         'name': cat,
-        'count': catProducts.length,
+        'count': items.length,
         'percentage':
-            catProducts.length / (_products.isNotEmpty ? _products.length : 1),
+            items.length / (_products.isNotEmpty ? _products.length : 1),
         'color': Colors.primaries[colorIndex % Colors.primaries.length],
       });
       colorIndex++;
     }
 
-    // === Riwayat produk (urut terbaru di atas) ===
-    List<Map<String, dynamic>> productAdditionHistory = _products.reversed.map((
-      p,
-    ) {
+    // Riwayat
+    List<Map<String, dynamic>> history = _products.reversed.map((p) {
       return {
         'name': p['name'] ?? 'Tanpa Nama',
-        'details': 'Kategori: ${p['category'] ?? '-'}',
+        'details': 'Kategori: ${p['category']}',
         'date': DateTime.now().toString().split('.')[0],
         'source': 'Firebase Firestore',
         'type': 'Produk Baru',
-        'qty': '+${p['stock'] ?? 0} pcs',
-        'price': 'Rp ${p['price'] ?? 0}',
+        'qty': '+${p['stock']} pcs',
+        'price': 'Rp ${p['price']}',
         'color': Colors.green,
       };
     }).toList();
@@ -310,12 +306,12 @@ class _LaporanPageState extends State<LaporanPage> {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
-          'Laporan Stok',
+          "Laporan Stok",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Colors.grey.shade200, height: 1.0),
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: Colors.grey.shade200),
         ),
       ),
       body: _products.isEmpty
@@ -325,45 +321,45 @@ class _LaporanPageState extends State<LaporanPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // === Ringkasan stok ===
+                  // === Card Ringkasan ===
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.35,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    childAspectRatio: 1.35,
                     children: [
                       _buildStockSummaryCard(
                         icon: Icons.shopping_cart_outlined,
                         iconColor: Colors.blue,
-                        title: 'Total Stok',
-                        value: '$totalStock',
-                        unit: 'pcs',
+                        title: "Total Stok",
+                        value: "$totalStock",
+                        unit: "pcs",
                         iconBgColor: Colors.blue.shade50,
                       ),
                       _buildStockSummaryCard(
                         icon: Icons.error_outline,
                         iconColor: Colors.red,
-                        title: 'Stok Rendah',
-                        value: '$lowStock',
-                        unit: 'items',
+                        title: "Stok Rendah",
+                        value: "$lowStock",
+                        unit: "items",
                         iconBgColor: Colors.red.shade50,
                       ),
                       _buildStockSummaryCard(
                         icon: Icons.cancel_outlined,
                         iconColor: Colors.redAccent,
-                        title: 'Stok Habis',
-                        value: '$outOfStock',
-                        unit: 'items',
+                        title: "Stok Habis",
+                        value: "$outOfStock",
+                        unit: "items",
                         iconBgColor: Colors.red.shade100,
                       ),
                       _buildStockSummaryCard(
                         icon: Icons.category_outlined,
                         iconColor: Colors.purple,
-                        title: 'Kategori',
-                        value: '$categoryCount',
-                        unit: 'jenis',
+                        title: "Kategori",
+                        value: "$categoryCount",
+                        unit: "jenis",
                         iconBgColor: Colors.purple.shade50,
                       ),
                     ],
@@ -373,10 +369,11 @@ class _LaporanPageState extends State<LaporanPage> {
 
                   // === Distribusi kategori ===
                   const Text(
-                    'Distribusi Kategori',
+                    "Distribusi Kategori",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+
                   Column(
                     children: categoryDistribution
                         .map(
@@ -392,27 +389,41 @@ class _LaporanPageState extends State<LaporanPage> {
 
                   const SizedBox(height: 20),
 
-                  // === Grafik stok ===
+                  // === DIAGRAM BATANG PERGERAKAN STOK ===
                   const Text(
-                    'Pergerakan Stok',
+                    "Pergerakan Stok",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
+
                   Container(
-                    height: 220,
-                    padding: const EdgeInsets.all(8),
+                    height: 260,
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: LineChart(
-                      LineChartData(
+                    child: BarChart(
+                      BarChartData(
+                        barGroups: _generateBarChart(),
+                        borderData: FlBorderData(show: false),
                         gridData: FlGridData(show: true),
                         titlesData: FlTitlesData(
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
                               interval: 1,
+                              getTitlesWidget: (value, meta) {
+                                if (value.toInt() < _products.length) {
+                                  return Text(
+                                    _products[value.toInt()]['name']
+                                        .toString()
+                                        .substring(0, 1),
+                                    style: const TextStyle(fontSize: 10),
+                                  );
+                                }
+                                return const Text('');
+                              },
                             ),
                           ),
                           leftTitles: AxisTitles(
@@ -422,27 +433,25 @@ class _LaporanPageState extends State<LaporanPage> {
                             ),
                           ),
                         ),
-                        borderData: FlBorderData(show: true),
-                        lineBarsData: _generateStockChart(),
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  // === Riwayat produk ===
+                  // === Riwayat ===
                   const Text(
-                    'Riwayat Penambahan Produk',
+                    "Riwayat Penambahan Produk",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: productAdditionHistory.length,
-                    itemBuilder: (context, index) => _buildProductAdditionItem(
-                      productAdditionHistory[index],
-                    ),
+                    itemCount: history.length,
+                    itemBuilder: (context, index) =>
+                        _buildProductAdditionItem(history[index]),
                   ),
                 ],
               ),

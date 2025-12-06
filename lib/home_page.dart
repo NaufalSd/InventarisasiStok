@@ -26,10 +26,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _katalogPage = KatalogPage(key: _katalogKey);
-    _loadProducts(); // ambil data dari Firestore
+    _loadProducts();
   }
 
-  // ======== Ambil data dari Firestore ========
+  // ======== Ambil data produk dari Firestore ========
   Future<void> _loadProducts() async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ======== Callback ketika produk diubah dari TambahPage ========
+  // ======== Callback ketika tambah/edit produk berhasil ========
   Future<void> _onProductUpdated() async {
     await _loadProducts();
     try {
@@ -58,10 +58,12 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() => _selectedIndex = 0);
   }
 
+  // ======== Navigasi Bottom Nav ========
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
+  // ======== Logout ========
   Future<void> _logout() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -79,7 +81,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ================== UI Builder ==================
+  // ======== Widget Summary Card ========
   Widget _buildSummaryCard({
     required IconData icon,
     required Color iconColor,
@@ -127,10 +129,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ======== Widget Card Produk ========
   Widget _buildProductCard(Map<String, dynamic> product) {
     int stock = (product['stock'] is int)
         ? product['stock'] as int
         : int.tryParse('${product['stock']}') ?? 0;
+
     int minStock = (product['stokMinimum'] is int)
         ? product['stokMinimum'] as int
         : int.tryParse('${product['stokMinimum']}') ?? 0;
@@ -147,7 +151,7 @@ class _HomePageState extends State<HomePage> {
 
     final imagePath =
         product['imagePath'] ??
-        'https://cdn-icons-png.flaticon.com/512/679/679720.png'; // placeholder
+        'https://cdn-icons-png.flaticon.com/512/679/679720.png';
     final priceStr = product['price']?.toString() ?? '-';
 
     return Card(
@@ -198,6 +202,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ======== Halaman List Widget ========
   List<Widget> _buildWidgetOptions() {
     return <Widget>[
       _buildHomeContent(),
@@ -207,6 +212,7 @@ class _HomePageState extends State<HomePage> {
     ];
   }
 
+  // ======== Halaman Beranda ========
   Widget _buildHomeContent() {
     return SafeArea(
       child: LayoutBuilder(
@@ -267,12 +273,10 @@ class _HomePageState extends State<HomePage> {
                           title: 'Stok Rendah',
                           value: _latestProducts
                               .where((p) {
-                                final stock = (p['stock'] is int)
-                                    ? p['stock'] as int
-                                    : int.tryParse('${p['stock']}') ?? 0;
-                                final min = (p['stokMinimum'] is int)
-                                    ? p['stokMinimum'] as int
-                                    : int.tryParse('${p['stokMinimum']}') ?? 0;
+                                final stock =
+                                    int.tryParse('${p['stock']}') ?? 0;
+                                final min =
+                                    int.tryParse('${p['stokMinimum']}') ?? 0;
                                 return stock <= min;
                               })
                               .length
@@ -298,12 +302,10 @@ class _HomePageState extends State<HomePage> {
                           title: 'Stok Aman',
                           value: _latestProducts
                               .where((p) {
-                                final stock = (p['stock'] is int)
-                                    ? p['stock'] as int
-                                    : int.tryParse('${p['stock']}') ?? 0;
-                                final min = (p['stokMinimum'] is int)
-                                    ? p['stokMinimum'] as int
-                                    : int.tryParse('${p['stokMinimum']}') ?? 0;
+                                final stock =
+                                    int.tryParse('${p['stock']}') ?? 0;
+                                final min =
+                                    int.tryParse('${p['stokMinimum']}') ?? 0;
                                 return stock > min;
                               })
                               .length
@@ -347,6 +349,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ======== BUILD UTAMA ========
   @override
   Widget build(BuildContext context) {
     final widgetOptions = _buildWidgetOptions();
@@ -373,6 +376,8 @@ class _HomePageState extends State<HomePage> {
         duration: const Duration(milliseconds: 300),
         child: widgetOptions[_selectedIndex],
       ),
+
+      // ====== Bottom Navigation dengan Tulisan "Tambah" ======
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.black,
@@ -391,7 +396,10 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.book_outlined),
             label: 'Katalog',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.add, size: 36), label: ''),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline, size: 32),
+            label: 'Tambah',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.show_chart_outlined),
             label: 'Laporan',
